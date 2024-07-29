@@ -1,16 +1,14 @@
 from bs4 import BeautifulSoup
-import requests
 import re
 import time
-import os
-import sys
 import urllib.request
 import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
 import pandas as pd
+
+# 만약 end가 2이고 display가 5이라면 2* 5 = 10 즉 총 10개의 블로그를 크롤링
 
 # 웹드라이버 설정
 options = webdriver.ChromeOptions()
@@ -18,14 +16,14 @@ options.add_experimental_option("excludeSwitches", ["enable-automation"])
 options.add_experimental_option("useAutomationExtension", False)
 
 # 버전에 상관 없이 os에 설치된 크롬 브라우저 사용
-driver = webdriver.Chrome(ChromeDriverManager().install())
+driver = webdriver.Chrome()
 driver.implicitly_wait(3)
 # 버전에 상관 없이 os에 설치된 크롬 브라우저 사용
 
 
 # Naver API key 입력
-client_id = ''
-client_secret = ''
+client_id = '5VJNqDF6q3IeyzcQzmkd'
+client_secret = 'Bgw6gRXs2s'
 
 
 # selenium으로 검색 페이지 불러오기 #
