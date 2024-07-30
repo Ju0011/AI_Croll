@@ -7,8 +7,13 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
+import ssl
 
-# 만약 end가 2이고 display가 5이라면 2* 5 = 10 즉 총 10개의 블로그를 크롤링
+# 인증 ssl 사용
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
+# 만약 end가 2이고 display가 5이라면 2 * 5 = 10 즉 총 10개의 블로그를 크롤링
 
 # 웹드라이버 설정
 options = webdriver.ChromeOptions()
@@ -18,7 +23,6 @@ options.add_experimental_option("useAutomationExtension", False)
 # 버전에 상관 없이 os에 설치된 크롬 브라우저 사용
 driver = webdriver.Chrome()
 driver.implicitly_wait(3)
-# 버전에 상관 없이 os에 설치된 크롬 브라우저 사용
 
 
 # Naver API key 입력
@@ -59,6 +63,7 @@ for start in range(end):
     request.add_header("X-Naver-Client-Secret",client_secret)
     response = urllib.request.urlopen(request)
     rescode = response.getcode()
+
     if(rescode==200):
         response_body = response.read()
 
@@ -77,7 +82,7 @@ for start in range(end):
         print("Error Code:" + rescode)
 
 
-###naver 기사 본문 및 제목 가져오기###
+###naver 본문 및 제목 가져오기###
 
 # ConnectionError방지
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/98.0.4758.102"}
@@ -114,7 +119,7 @@ try:
         contents.append(content)
 
 
-    news_df = pd.DataFrame({'title': titles, 'content': contents, 'date': postdate})
+    news_df = pd.DataFrame({'keyword': keword ,'title': titles, 'content': contents, 'date': postdate, 'url' : naver_urls})
     news_df.to_csv('blog.csv', index=False, encoding='utf-8-sig')
 except:
     contents.append('error')
