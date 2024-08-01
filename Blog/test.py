@@ -56,7 +56,7 @@ def get_blog_url():
     return blog_urls
 
 def more_btn():
-    """Click 'More' button to load additional blog posts."""
+
     count = 0
     while True:
         try:
@@ -71,7 +71,7 @@ def more_btn():
             break
 
 def crawling_main():
-    """Main function to perform web scraping."""
+
     global naver_res
     search_frame()
     elems, _ = chk_names()
