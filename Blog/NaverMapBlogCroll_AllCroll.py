@@ -20,7 +20,7 @@ url = f'https://map.naver.com/p/search/{keyword}'
 driver.get(url)
 action = ActionChains(driver)
 
-naver_res = pd.DataFrame(columns=['키워드','업체명','주소','업체URL','블로그URL','Title','Content'])
+naver_res = pd.DataFrame(columns=['키워드','업체명','주소','업체URL','블로그URL','Title','Content','postdate'])
 last_name = ''
 
 def search_frame():
@@ -86,15 +86,18 @@ def crawling_main():
     global naver_res
     keyword_list = keyword
 
-    name_list = []
-    addr_list = []
-    rest_url_list = []
-    blog_url_list = []
-    title_list = []
-    content_list = []
+
 
     count = 0
     for e in elem:
+
+        name_list = []
+        addr_list = []
+        rest_url_list = []
+        blog_url_list = []
+        title_list = []
+        content_list = []
+
         #test
         if count == 2:
             break
@@ -130,7 +133,9 @@ def crawling_main():
         more_btn()
         time.sleep(2)
 
-        blog_url_list = get_blog_url()
+        for i in get_blog_url():
+            blog_url_list.append(naver_res['업체명'][e], '', i)
+
 
         # try:
         #     blog_url_list.append(get_blog_url())
@@ -153,17 +158,9 @@ def crawling_main():
         search_frame()
         count = count + 1
 
-        naver_temp = pd.DataFrame.from_dict({
-            '키워드': keyword_list,
-            '업체명': name_list,
-            '주소': addr_list,
-            '업체URL': rest_url_list,
-            '블로그URL': blog_url_list,
-            'Title': title_list,
-            'Content': content_list
-        },orient='index').T
 
-        naver_res = pd.concat([naver_res, naver_temp],ignore_index=True)
+        naver_temp = pd.DataFrame([keyword_list, name_list, addr_list, rest_url_list, blog_url_list, title_list, content_list], index=naver_res.columns).T
+        naver_res = pd.concat([naver_res, naver_temp])
 
 
 ################################
