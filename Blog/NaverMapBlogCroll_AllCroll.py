@@ -1,6 +1,7 @@
 import pandas as pd
 from selenium import webdriver
-from selenium.webdriver import ActionChains
+from selenium.common import NoSuchElementException
+from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.common.by import By
 import time
 from bs4 import BeautifulSoup
@@ -42,17 +43,11 @@ def entry_frame():
 
 #블로그 리뷰 페이지로 이동
 def blog_frame():
-    review_btn = driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div/div/div[4]/div/div/div/div/a[4]')
-    review_btn.click()
-    time.sleep(1)
+    driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div/div/div[2]/div[1]/div[2]/span[2]/a').click()
 
-    blog_btn = driver.find_element(By.XPATH, '//*[@id="_subtab_view"]/div/a[2]')
-    blog_btn.click()
-    time.sleep(1)
-
-    recent_btn = driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div/div/div[6]/div[3]/div/div[1]/div/div/div[1]/span[2]/a')
-    recent_btn.click()
-    time.sleep(1)
+    # recent_btn = driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div/div/div[6]/div[3]/div/div[1]/div/div/div[1]/span[2]/a')
+    # recent_btn.click()
+    # time.sleep(1)
 
 
 def chk_names():
@@ -61,6 +56,30 @@ def chk_names():
     name_list = [e.text for e in elem]
 
     return elem, name_list
+
+def get_blog_url():
+    blog_list = driver.find_elements(By.CLASS_NAME, 'uUMhQ')
+    blog_url = [element.get_attribute('href') for element in blog_list]
+
+    return blog_url
+
+def more_btn():
+    count = 0
+
+    more_btn = driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div/div/div[6]/div[3]/div/div[2]/div/a')
+    # 더보기 버튼 10개 마다 나옴
+    while True:
+        try:
+            #테스트
+            if count == 1:
+                break
+            more_btn.click()
+            count = count + 1
+            time.sleep(3)
+
+        except NoSuchElementException:
+            print('더보기 버튼 모두 클릭 완료')
+            break
 
 
 def crawling_main():
@@ -76,12 +95,14 @@ def crawling_main():
 
     count = 0
     for e in elem:
-        if count == 5:
+        #test
+        if count == 2:
             break
 
         e.click()
         entry_frame()
         time.sleep(2)
+
         soup = BeautifulSoup(driver.page_source, 'html.parser')
 
         # 칼럼에 append
@@ -104,40 +125,45 @@ def crawling_main():
 
 
         blog_frame()
+        time.sleep(2)
 
+        more_btn()
+        time.sleep(2)
 
-        try:
-            blog_url_list.append(soup.select('a.place_bluelink.CHmqa')[0]['href'])
-        except:
-            blog_url_list.append(float('nan'))
+        blog_url_list = get_blog_url()
 
-
-        try:
-            title_list.append(soup.select('a.place_bluelink.CHmqa')[0]['href'])
-        except:
-            title_list.append(float('nan'))
-
-
-        try:
-            content_list.append(soup.select('a.place_bluelink.CHmqa')[0]['href'])
-        except:
-            content_list.append(float('nan'))
+        # try:
+        #     blog_url_list.append(get_blog_url())
+        # except:
+        #     blog_url_list.append(float('nan'))
+        #
+        #
+        # try:
+        #     title_list.append(soup.select('a.place_bluelink.CHmqa')[0]['href'])
+        # except:
+        #     title_list.append(float('nan'))
+        #
+        #
+        # try:
+        #     content_list.append(soup.select('a.place_bluelink.CHmqa')[0]['href'])
+        # except:
+        #     content_list.append(float('nan'))
 
 
         search_frame()
         count = count + 1
 
-    naver_temp = pd.DataFrame({
-        '키워드': keyword_list,
-        '업체명': name_list,
-        '주소': addr_list,
-        '업체URL': rest_url_list,
-        '블로그URL': blog_url_list,
-        'Title': title_list,
-        'Content': content_list
-    })
+        naver_temp = pd.DataFrame.from_dict({
+            '키워드': keyword_list,
+            '업체명': name_list,
+            '주소': addr_list,
+            '업체URL': rest_url_list,
+            '블로그URL': blog_url_list,
+            'Title': title_list,
+            'Content': content_list
+        },orient='index').T
 
-    naver_res = pd.concat([naver_res, naver_temp])
+        naver_res = pd.concat([naver_res, naver_temp],ignore_index=True)
 
 
 ################################
@@ -148,7 +174,7 @@ count = 0
 while 1:
     time.sleep(2)
     search_frame()
-    elem, name_list = chk_names()
+    elem, nams = chk_names()
     #
     # if last_name == name_list[-1]:
     #     pass
@@ -174,6 +200,7 @@ while 1:
     # next page
     driver.find_element(By.XPATH, '//*[@id="app-root"]/div/div[2]/div[2]/a[7]').click()
     time.sleep(1.5)
+
 
 
 naver_res.to_excel('naver_map_blog_crawling.xlsx')
