@@ -57,7 +57,7 @@ def get_place_reviews(api_key, place_id, max_reviews=100):
 
 # Example usage
 if __name__ == "__main__":
-    api_key = "AIzaSyBRy51srZCyhrkWQt5gHzDxuqd2t0sZ5OU"
+    api_key = ""
     place_id = get_place_id("우진해장국",api_key)
     reviews = get_place_reviews(api_key, place_id, max_reviews=100)
     recent_reviews = filter_and_sort_recent_reviews(reviews)
