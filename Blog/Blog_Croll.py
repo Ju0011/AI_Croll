@@ -93,7 +93,7 @@ try:
     for i in naver_urls:
         print(i)
         driver.get(i)
-        time.sleep(5)  # 대기시간 변경 가능
+        time.sleep(5)
 
         iframe = driver.find_element(By.ID , "mainFrame") # id가 mainFrame이라는 요소를 찾아내고 -> iframe임
         driver.switch_to.frame(iframe) # 이 iframe이 내가 찾고자하는 html을 포함하고 있는 내용

@@ -5,8 +5,6 @@ from requests.adapters import HTTPAdapter
 from openpyxl import Workbook
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
 import time
 import datetime
 import requests
@@ -34,7 +32,7 @@ session.mount('http://', HTTPAdapter(max_retries=retries))
 # New xlsx file
 now = datetime.datetime.now()
 xlsx = Workbook()
-list_sheet = xlsx.create_sheet('output')
+list_sheet = xlsx.create_sheet('연돈')
 list_sheet.append(['nickname', 'content', 'date', 'revisit'])
 
 

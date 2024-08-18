@@ -1,15 +1,9 @@
 import time
 
-from bs4 import BeautifulSoup
+
 from openpyxl.workbook import Workbook
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.keys import Keys
 from seleniumwire import webdriver
-from tqdm import tqdm
-import requests
-import json
 import pandas as pd
 from time import sleep
 
@@ -22,6 +16,7 @@ driver.get('https://www.google.co.kr/maps/place/%EC%9A%B0%EC%A7%84%ED%95%B4%EC%9
 def detail_btn():
     driver.find_element(By.CSS_SELECTOR, '.w8nwRe.kyuRq').click()
     time.sleep(2)
+
 
 def review_scroll():
     last_height = driver.execute_script("return document.body.scrollHeight")

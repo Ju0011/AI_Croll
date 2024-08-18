@@ -1,99 +1,92 @@
-from selenium.webdriver.common.by import By
-from seleniumwire import webdriver
-from tqdm import tqdm
-from time import sleep
+from datetime import datetime, timedelta
+
 import requests
-import json
 import pandas as pd
 
-def google_reviews(store_list, gu, count=10):
 
-    # 드라이버 실행
-    options = webdriver.ChromeOptions()
-    options.add_argument("window-size=1920x1080")
-    driver = webdriver.Chrome( options=options)
-    sleep(3)
 
-    # 리스트 형식으로 저장된 가게 하나씩 검색
-    for store in store_list:
-        count = count
-        driver.get('https://www.google.co.kr/maps')
-        result_list = []
-        sleep(3)
-        query_input = driver.find_element(By.XPATH, '//*[@id="searchboxinput"]')
-        query_input.send_keys(gu + " " + store)
-        search_btn = driver.find_element(By.XPATH, '//*[@id="searchbox-searchbutton"]/span')
-        search_btn.click()
+# 식당명 검색 및 Place ID 추출
+def get_place_id(query, api_key):
+    url = f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={query}&inputtype=textquery&fields=place_id&language=ko&key={api_key}"
+    response = requests.get(url)
+    place_id = response.json()['candidates'][0]['place_id']
+    return place_id
 
-        # 의도한 가게와 검색결과가 같은지 확인 후 자동으로 첫 번째 결과 클릭
-        # sleep(5)
-        # try:
-        #     first_result = driver.find_element(By.XPATH, '(//div[contains(@class,"Nv2PK tH5CWc THOPZb")])[1]')
-        #     first_result.click()
-        # except Exception as e:
-        #     print(f"Error clicking the first result: {e}")
-        #     continue
+# 전화번호, 리뷰 추출
+def get_place_details(place_id, api_key):
+    url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,reviews&key={api_key}&language=ko"
+    response = requests.get(url)
+    result = response.json()['result']
+    return result
 
-        # 리뷰 더보기로 이동
-        try:
-            more_btn = driver.find_element(By.XPATH, '//*[@id="pane"]/div/div[1]/div/div/div[2]/div[1]/div[1]/div[2]/div/div[1]/span[1]/span/span/span[2]/span[1]/button')
-            more_btn.click()
-            views = int(''.join(more_btn.text[2:-1].split(','))) // 10
-        except Exception as e:
-            print(f"Error clicking 'more' button: {e}")
-            continue
+# 최신 리뷰 필터링 (5개월 이내), 최신순 정렬
+def filter_and_sort_recent_reviews(reviews, months=5):
+    cutoff_date = datetime.now() - timedelta(days=months * 30)
+    recent_reviews = [
+        review for review in reviews
+        if datetime.utcfromtimestamp(int(review['time'])) >= cutoff_date
+    ]
+    recent_reviews.sort(key=lambda x: x['time'], reverse=True)
+    return recent_reviews
 
-        #리뷰 버튼 클릭
-        review_btn = driver.find_element(By.XPATH, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[3]/div/div/button[2]/div[2]/div[2]')
-        review_btn.click()
 
-        #정렬 버튼 클릭
-        sort_btn = driver.find_element(By.XPATH, '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[2]/div[7]/div[2]/button/span/span[2]')
-        sort_btn.click()
+def get_place_reviews(api_key, place_id, max_reviews=100):
+    url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=reviews&language=ko&key={api_key}"
 
-        #최신순 정렬
-        recent_btn = driver.find_element(By.XPATH, '//*[@id="action-menu"]/div[2]')
-        recent_btn.click()
+    response = requests.get(url)
+    if response.status_code != 200:
+        print(f"Error fetching data: {response.status_code}")
+        return []
 
-        # div태그 스크롤
-        sleep(8)
-        js_scripts = '''
-        let aa = document.getElementsByClassName('section-scrollbox')[0];
-        setTimeout(()=>{aa.scroll(0,1000000)}, 1000);
-        '''
-        driver.execute_script(js_scripts)
-        sleep(3)
+    place_details = response.json()
+    reviews = place_details.get('result', {}).get('reviews', [])
 
-        # 헤더값 찾기 및 json파일 들고와 리뷰 10개씩 저장하기
-        for request in driver.requests:
-            if request.response:
-                pb = request.url.split('pb=')
-                if len(pb) == 2:
-                    if pb[1][:6] == '!1m2!1':
-                        url_l = request.url.split('!2m2!1i')
-                        break
+    # Limit the number of reviews to max_reviews
+    reviews = reviews[:max_reviews]
 
-        if count > views:
-            count = views
+    formatted_reviews = []
+    for review in reviews:
+        formatted_reviews.append({
+            'author_name': review.get('author_name'),
+            'rating': review.get('rating'),
+            'text': review.get('text'),
+            'relative_time_description': review.get('relative_time_description')
+        })
 
-        for number in tqdm(range(count)):
-            resp = requests.get((url_l[0] + '!2m2!1i' + '{}' + url_l[1]).format(number))
-            review = json.loads(resp.text[5:])
-            for user in range(10):
-                result_list.append({
-                    'ID': review[2][user][0][1],
-                    '내용': review[2][user][3],
-                    '날짜': review[2][user][1],
-                    '별점': review[2][user][4]
-                })
+    return formatted_reviews
 
-        # csv로 저장
-        df = pd.DataFrame(result_list)
-        df.to_csv('{}.csv'.format(store), encoding='utf-8-sig')
+# Example usage
+if __name__ == "__main__":
+    api_key = "AIzaSyBRy51srZCyhrkWQt5gHzDxuqd2t0sZ5OU"
+    place_id = get_place_id("우진해장국",api_key)
+    reviews = get_place_reviews(api_key, place_id, max_reviews=100)
+    recent_reviews = filter_and_sort_recent_reviews(reviews)
 
-# 사용 예제
-df_restNm = pd.read_excel("제주도_restnum.xlsx")
-store_list = df_restNm['업체명']
+    for idx, review in enumerate(recent_reviews):
+        print(f"Review {idx + 1}:")
+        print(f"Author: {review['author_name']}")
+        print(f"Rating: {review['rating']}")
+        print(f"Review Text: {review['text']}")
+        print(f"Relative Time: {review['relative_time_description']}")
+        print("-" * 20)
 
-# 함수 실행
-google_reviews(store_list, '제주도', count=5)
+    # 리뷰 데이터를 pandas DataFrame으로 변환
+    reviews_data = []
+    for review in recent_reviews:
+        reviews_data.append({
+            "author_name": review['author_name'],
+            "rating": review['rating'],
+            "text": review['text'],
+            "review_time": datetime.utcfromtimestamp(int(review['time'])).strftime('%Y-%m-%d %H:%M:%S')
+        })
+
+    df_reviews = pd.DataFrame(reviews_data)
+
+    # 전체 데이터를 CSV 파일로 저장
+    #csv_filename = f"{restaurant_info['name']}_reviews.csv"
+    csv_filename = "우진해장국_reviews.csv"
+
+    # DataFrame을 CSV로 저장
+    df_reviews.to_csv(csv_filename, index=False, encoding='utf-8-sig')
+
+    print(f"CSV 파일로 저장되었습니다: {csv_filename}")
